@@ -102,9 +102,13 @@ def loginJobcan(driver):
     #over-work-table
     ActionChains(driver).move_to_element(driver.find_element_by_css_selector('#adit-manage-step > a')).perform()
     #driver.save_screenshot('2after over-work-table.png')
-    #待機が必要
+
+    #待機が必要なので
     time.sleep(1)
     driver.find_element_by_css_selector('#adit-manage-menu > ul > li:nth-child(3) > dl > dd > ul > li:nth-child(2) > a').click()
+
+    #group_id select
+    driver.find_element_by_xpath("//*[@id='group_id']/option[@value=" + JC_GROUPID + "]").click()
     driver.find_element_by_css_selector('#form1 > div.btn-block > a.btn.btn-info').click()
     #driver.save_screenshot('3after over-work-table.png')
 
@@ -114,23 +118,31 @@ def loginJobcan(driver):
 def getOverwork(driver):
 
     overwork_title = driver.find_element_by_xpath("//*[@id='wrap-basic-shift-table']/h3").text + "（" + "{0:%Y-%m-%d}".format(datetime.datetime.now()) +" 時点）"
-    trs = driver.find_element_by_xpath("//*[@id='wrap-basic-shift-table']/div").find_elements(By.TAG_NAME, "tr")
 
-    driver.implicitly_wait(2)
     overwork_items = []
-    for i in range(1,len(trs)-1):
-       tds = trs[i].find_elements(By.TAG_NAME, "td")
-       for j in range(0,len(tds)):
-           if j < len(tds):
-               #スタッフ
-               if j == 0:
-                   staff = tds[j].text
-               #残業時間
-               elif j == 3:
-                   overwork = tds[j].text
-                   #時間のソート用
-                   overworktime = re.sub('分','', re.sub('時間 ','.',overwork))
-       overwork_items.append((staff, overwork, overworktime))
+    while True:
+        driver.implicitly_wait(2)
+        trs = driver.find_element_by_xpath("//*[@id='wrap-basic-shift-table']/div").find_elements(By.TAG_NAME, "tr")
+        for i in range(1,len(trs)-1):
+           tds = trs[i].find_elements(By.TAG_NAME, "td")
+           for j in range(0,len(tds)):
+               if j < len(tds):
+                   #スタッフ
+                   if j == 0:
+                       staff = tds[j].text
+                   #残業時間
+                   elif j == 3:
+                       overwork = tds[j].text
+                       #時間のソート用
+                       overworktime = float(re.sub('分','', re.sub('時間 ','.',overwork)))
+           overwork_items.append((staff, overwork, overworktime))
+
+        hasnextpage = len(driver.find_element_by_xpath("//*[@id='pager_next']").find_elements(By.TAG_NAME, "a"))
+
+        if hasnextpage:
+            driver.find_element_by_xpath("//*[@id='pager_next']/a").click()
+        else:
+            break
 
     return overwork_title, overwork_items
 
